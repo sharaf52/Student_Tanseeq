@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>لوحة تحكم الأدمن</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Cairo', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #eef1f5;
+        }
+        .dashboard-header {
+            background-color: #343a40;
+            color: white;
+            padding: 20px;
+            border-radius: 0;
+            margin-bottom: 20px;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 100vw;
+        }
+        .btn-group-custom {
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .table-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            display: block;
+        }
+        .table-hover tbody tr:hover {
+            background-color: #f1f3f5;
+        }
+        .btn {
+            transition: 0.3s;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+        }
+        .btn-custom {
+            background-color: #2D9596;
+            color: white;
+            border: none;
+        }
+        .btn-custom:hover {
+            background-color: #A2C58C;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid">
+    <div class="dashboard-header">
+        <h2>لوحة تحكم الأدمن</h2>
+        <div class="btn-group-custom">
+
+            {% if session['permissions']['can_upload_excel'] %}
+            <form action="{{ url_for('upload_excel') }}" method="post" enctype="multipart/form-data">
+                <input type="file" name="excel_file" accept=".xlsx, .xls" required hidden id="excelUpload" onchange="this.form.submit();">
+                <button type="button" class="btn btn-success" onclick="document.getElementById('excelUpload').click();">
+                    📥 رفع بيانات الطلاب
+                </button>
+            </form>
+            {% endif %}
+
+            {% if session['permissions']['can_manage_dates'] %}
+            <a href="{{ url_for('update_settings') }}" class="btn btn-info">🗓️ تحديد التواريخ</a>
+            {% endif %}
+
+            {% if session['permissions']['can_export'] %}
+            <button class="btn btn-secondary" onclick="window.location.href='{{ url_for('export_students') }}'">📂 تصدير البيانات</button>
+            {% endif %}
+
+            {% if session['permissions']['can_edit_limits'] %}
+            <button class="btn btn-warning" onclick="window.location.href='{{ url_for('manage_limits') }}'">📊 وضع الحدود الدنيا</button>
+            {% endif %}
+
+            {% if session['permissions']['can_upload_results'] %}
+            <button class="btn btn-custom" onclick="uploadResults()">📤 رفع نتيجة الرغبات</button>
+            {% endif %}
+
+            {% if session['permissions']['can_delete_all_students'] %}
+            <form action="{{ url_for('delete_all_students') }}" method="POST" onsubmit="return confirm('هل أنت متأكد من حذف جميع الطلاب؟');">
+                <button type="submit" class="btn btn-danger">🗑️ حذف كل الطلاب</button>
+            </form>
+            {% endif %}
+            {% if session['permissions']['can_manage_permissions'] %}
+<a href="{{ url_for('manage_permissions') }}" class="btn btn-warning">
+    👮‍♂️ إدارة صلاحيات الأدمنز
+</a>
+{% endif %}
+
+
+            <a href="{{ url_for('home') }}" class="btn btn-dark">🚪 تسجيل الخروج</a>
+
+            <script>
+                function uploadResults() {
+                    if (!confirm("هل أنت متأكد من رفع نتيجة الرغبات؟ لا يمكن التراجع بعد ذلك!")) {
+                        return;
+                    }
+
+                    fetch('/upload_results', {
+                        method: 'POST'
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === "success") {
+                            alert("✅ " + data.message);
+                        } else {
+                            alert("❌ " + data.message);
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+                }
+            </script>
+        </div>
+    </div>
+
+    <div id="studentSection" class="table-container">
+        <form action="{{ url_for('search_student') }}" method="post" class="mb-3 d-flex">
+            <input type="text" name="national_id" placeholder="أدخل الرقم القومي" required class="form-control me-2">
+            <button type="submit" class="btn btn-primary">🔍 </button>
+        </form>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <table class="table table-bordered table-hover">
+            <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>الاسم</th>
+                <th>الرقم القومي</th>
+                <th>الهاتف</th>
+                <th>نوع الشهادة</th>
+                <th>المجموع</th>
+                <th>النسبة المئوية</th>
+                <th>الشعبة</th>
+                <th>الرغبات</th>
+                <th>إجراءات</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for student in students %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ student.name }}</td>
+                <td>{{ student.national_id }}</td>
+                <td>{{ student.phone }}</td>
+                <td>{{ student.certificate_type }}</td>
+                <td>{{ student.total_score }}</td>
+                <td>{{ student.percentage }}%</td>
+                <td>{{ student.division }}</td>
+                <td>
+                    <ol>
+                        {% for choice in student.choices.split(',') %}
+                        <li>{{ choice }}</li>
+                        {% endfor %}
+                    </ol>
+                </td>
+                <td>
+                    {% if session['permissions']['can_print_student'] %}
+<a href="{{ url_for('print_student', student_id=student.id) }}" class="btn btn-sm btn-primary">🖨️ طباعة</a>
+{% endif %}
+
+                    {% if session['permissions']['can_edit_student'] %}
+<a href="{{ url_for('edit_student', student_id=student.id) }}" class="btn btn-sm btn-warning">✏️ تعديل</a>
+{% endif %}
+
+                    {% if session['permissions']['can_delete_student'] %}
+<form action="{{ url_for('delete_student', student_id=student.id) }}" method="POST" style="display:inline;">
+    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('هل أنت متأكد من حذف هذا الطالب؟');">
+        🗑️ حذف
+    </button>
+</form>
+{% endif %}
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="10" class="text-center text-muted">لا توجد بيانات حتى الآن.</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    function toggleSection() {
+        var section = document.getElementById("studentSection");
+        section.style.display = section.style.display === "none" ? "block" : "none";
+    }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>
