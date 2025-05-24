@@ -28,7 +28,7 @@ import io
 app = Flask(__name__)
 app.secret_key = "secret123"
 # إعداد الاتصال بقاعدة البيانات
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/student_tanseeq'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://sql12780962:Mg7hHNzbUF@sql12.freesqldatabase.com:3306/sql12780962'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 # تعريف جدول الطلاب
